@@ -1,9 +1,7 @@
 #!/bin/bash
 #
-# Argument = -u user -p password -k key -s secret -b bucket
+# Argument = -u user -p password -k key -s secret -b bucket -d database
 #
-# To Do - Add logging of output.
-# To Do - Abstract bucket region to options
 
 set -e
 
@@ -20,21 +18,23 @@ OPTIONS:
    -h      Show this message
    -u      Mongodb user
    -p      Mongodb password
+   -d      Mongodb Database
    -k      AWS Access Key
    -s      AWS Secret Key
-   -r      Amazon S3 region
+   -r       Amazon S3 region
    -b      Amazon S3 bucket name
 EOF
 }
 
 MONGODB_USER=
 MONGODB_PASSWORD=
+MONGODB_DATABASE=
 AWS_ACCESS_KEY=
 AWS_SECRET_KEY=
 S3_REGION=
 S3_BUCKET=
 
-while getopts “ht:u:p:k:s:r:b:” OPTION
+while getopts “ht:u:p:d:k:s:r:b:” OPTION
 do
   case $OPTION in
     h)
@@ -46,6 +46,9 @@ do
       ;;
     p)
       MONGODB_PASSWORD=$OPTARG
+      ;;
+    d)
+      MONGODB_DATABASE=$OPTARG
       ;;
     k)
       AWS_ACCESS_KEY=$OPTARG
@@ -66,7 +69,7 @@ do
   esac
 done
 
-if [[ -z $MONGODB_USER ]] || [[ -z $MONGODB_PASSWORD ]] || [[ -z $AWS_ACCESS_KEY ]] || [[ -z $AWS_SECRET_KEY ]] || [[ -z $S3_REGION ]] || [[ -z $S3_BUCKET ]]
+if [[ -z $MONGODB_USER ]] || [[ -z $MONGODB_PASSWORD ]] || [[ -z $MONGODB_DATABASE ]] || [[ -z $AWS_ACCESS_KEY ]] || [[ -z $AWS_SECRET_KEY ]] || [[ -z $S3_REGION ]] || [[ -z $S3_BUCKET ]]
 then
   usage
   exit 1
@@ -80,15 +83,8 @@ DATE=$(date -u "+%F-%H%M%S")
 FILE_NAME="backup-$DATE"
 ARCHIVE_NAME="$FILE_NAME.tar.gz"
 
-# Lock the database
-# Note there is a bug in mongo 2.2.0 where you must touch all the databases before you run mongodump
-mongo -username "$MONGODB_USER" -password "$MONGODB_PASSWORD" admin --eval "var databaseNames = db.getMongo().getDBNames(); for (var i in databaseNames) { printjson(db.getSiblingDB(databaseNames[i]).getCollectionNames()) }; printjson(db.fsyncLock());"
-
 # Dump the database
-mongodump -username "$MONGODB_USER" -password "$MONGODB_PASSWORD" --out $DIR/backup/$FILE_NAME
-
-# Unlock the database
-mongo -username "$MONGODB_USER" -password "$MONGODB_PASSWORD" admin --eval "printjson(db.fsyncUnlock());"
+mongodump -username "$MONGODB_USER" -password "$MONGODB_PASSWORD" -d "MONGODB_DATABASE" --out $DIR/backup/$FILE_NAME
 
 # Tar Gzip the file
 tar -C $DIR/backup/ -zcvf $DIR/backup/$ARCHIVE_NAME $FILE_NAME/
