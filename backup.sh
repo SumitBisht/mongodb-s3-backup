@@ -74,7 +74,7 @@ FILE_NAME="backup-$DATE"
 ARCHIVE_NAME="$FILE_NAME.tar.gz"
 
 # Dump the database
-mongodump -d "MONGODB_DATABASE" --out $DIR/backup/$FILE_NAME
+mongodump -d $MONGODB_DATABASE --out $DIR/backup/$FILE_NAME
 
 # Tar Gzip the file
 tar -C $DIR/backup/ -zcvf $DIR/backup/$ARCHIVE_NAME $FILE_NAME/
