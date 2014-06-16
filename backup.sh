@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Argument = -u user -p password -k key -s secret -b bucket -d database
+# Argument = -k key -s secret -b bucket -d database
 #
 
 set -e
@@ -12,12 +12,10 @@ usage()
 cat << EOF
 usage: $0 options
 
-This script dumps the current mongo database, tars it, then sends it to an Amazon S3 bucket.
+This script dumps the specified mongo database, tars it, then sends it to an Amazon S3 bucket.
 
 OPTIONS:
    -h      Show this message
-   -u      Mongodb user
-   -p      Mongodb password
    -d      Mongodb Database
    -k      AWS Access Key
    -s      AWS Secret Key
@@ -26,26 +24,18 @@ OPTIONS:
 EOF
 }
 
-MONGODB_USER=
-MONGODB_PASSWORD=
 MONGODB_DATABASE=
 AWS_ACCESS_KEY=
 AWS_SECRET_KEY=
 S3_REGION=
 S3_BUCKET=
 
-while getopts “ht:u:p:d:k:s:r:b:” OPTION
+while getopts “ht:d:k:s:r:b:” OPTION
 do
   case $OPTION in
     h)
       usage
       exit 1
-      ;;
-    u)
-      MONGODB_USER=$OPTARG
-      ;;
-    p)
-      MONGODB_PASSWORD=$OPTARG
       ;;
     d)
       MONGODB_DATABASE=$OPTARG
@@ -69,7 +59,7 @@ do
   esac
 done
 
-if [[ -z $MONGODB_USER ]] || [[ -z $MONGODB_PASSWORD ]] || [[ -z $MONGODB_DATABASE ]] || [[ -z $AWS_ACCESS_KEY ]] || [[ -z $AWS_SECRET_KEY ]] || [[ -z $S3_REGION ]] || [[ -z $S3_BUCKET ]]
+if [[ -z $MONGODB_DATABASE ]] || [[ -z $AWS_ACCESS_KEY ]] || [[ -z $AWS_SECRET_KEY ]] || [[ -z $S3_REGION ]] || [[ -z $S3_BUCKET ]]
 then
   usage
   exit 1
@@ -84,7 +74,7 @@ FILE_NAME="backup-$DATE"
 ARCHIVE_NAME="$FILE_NAME.tar.gz"
 
 # Dump the database
-mongodump -username "$MONGODB_USER" -password "$MONGODB_PASSWORD" -d "MONGODB_DATABASE" --out $DIR/backup/$FILE_NAME
+mongodump -d "MONGODB_DATABASE" --out $DIR/backup/$FILE_NAME
 
 # Tar Gzip the file
 tar -C $DIR/backup/ -zcvf $DIR/backup/$ARCHIVE_NAME $FILE_NAME/
